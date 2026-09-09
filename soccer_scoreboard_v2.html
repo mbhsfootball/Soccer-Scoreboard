@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soccer Live Scoreboard</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;background:transparent}
+.wrap{width:100%;min-height:100%;display:flex;justify-content:center;align-items:flex-start;padding:18px}
+.board{width:min(1000px,96vw);background:rgba(10,12,16,.94);border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.35);color:#fff}
+.main{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:15px 24px;gap:16px}
+.teamBox{text-align:center}.team{font-weight:900;font-size:clamp(16px,2.7vw,30px);letter-spacing:.4px}
+.logo{width:clamp(38px,6vw,62px);height:clamp(38px,6vw,62px);object-fit:contain;display:block;margin:0 auto 5px}
+.logo.hidden{display:none}
+.score{font-weight:900;font-size:clamp(38px,6vw,64px);line-height:1}
+.center{text-align:center}.clock{font-weight:900;font-variant-numeric:tabular-nums;font-size:clamp(20px,3vw,31px)}
+.period{font-size:11px;font-weight:800;letter-spacing:1.4px;opacity:.7;margin-top:3px}
+.controls{display:none;padding:14px;border-top:1px solid rgba(255,255,255,.12);background:#171a20}
+.controls.show{display:block}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:7px 0}
+input,button{font:inherit;border-radius:9px;border:1px solid #3a404a;background:#242933;color:#fff;padding:9px 11px}
+input[type=text]{min-width:125px}input[type=file]{max-width:220px;font-size:12px}
+button{cursor:pointer;font-weight:800}button:hover{filter:brightness(1.15)}
+.good{background:#263f2d}.danger{background:#52272b}.small{font-size:12px;opacity:.7}
+.toggle{position:fixed;right:12px;bottom:12px;z-index:5;padding:8px 10px;font-size:12px;opacity:.85}
+@media(max-width:600px){.main{padding:12px 8px;gap:7px}.wrap{padding:7px}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="board">
+  <div class="main">
+    <div class="teamBox">
+      <img id="homeLogo" class="logo hidden" alt="">
+      <div id="homeDisplay" class="team">HOME</div>
+      <div id="homeScore" class="score">0</div>
+    </div>
+    <div class="center">
+      <div id="clock" class="clock">00:00</div>
+      <div id="period" class="period">1ST HALF</div>
+    </div>
+    <div class="teamBox">
+      <img id="awayLogo" class="logo hidden" alt="">
+      <div id="awayDisplay" class="team">AWAY</div>
+      <div id="awayScore" class="score">0</div>
+    </div>
+  </div>
+
+  <div id="controls" class="controls">
+    <div class="row">
+      <input id="homeName" type="text" placeholder="Home team">
+      <button onclick="setName('home')">Set Home</button>
+      <input id="homeFile" type="file" accept="image/*" onchange="loadLogo('home',this)">
+      <button onclick="removeLogo('home')">Remove Home Logo</button>
+      <button onclick="changeScore('home',1)">Home +1</button>
+      <button onclick="changeScore('home',-1)">Home -1</button>
+    </div>
+    <div class="row">
+      <input id="awayName" type="text" placeholder="Away team">
+      <button onclick="setName('away')">Set Away</button>
+      <input id="awayFile" type="file" accept="image/*" onchange="loadLogo('away',this)">
+      <button onclick="removeLogo('away')">Remove Away Logo</button>
+      <button onclick="changeScore('away',1)">Away +1</button>
+      <button onclick="changeScore('away',-1)">Away -1</button>
+    </div>
+    <div class="row">
+      <button class="good" onclick="startClock()">START</button>
+      <button onclick="pauseClock()">PAUSE</button>
+      <button onclick="resetClock()">RESET CLOCK</button>
+      <button onclick="togglePeriod()">1ST / 2ND HALF</button>
+      <button class="danger" onclick="resetMatch()">RESET MATCH</button>
+    </div>
+    <div class="row"><span class="small">Choose a logo image from your device. Logos and names are only for the current browser session; choose them again for a new device/browser.</span></div>
+  </div>
+</div></div>
+<button class="toggle" onclick="toggleControls()">Controls</button>
+
+<script>
+let home=0,away=0,seconds=0,running=false,secondHalf=false,timer=null;
+function render(){
+ document.getElementById('homeScore').textContent=home;
+ document.getElementById('awayScore').textContent=away;
+ document.getElementById('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+ document.getElementById('period').textContent=secondHalf?'2ND HALF':'1ST HALF';
+}
+function changeScore(side,n){if(side==='home')home=Math.max(0,home+n);else away=Math.max(0,away+n);render();}
+function setName(side){const v=document.getElementById(side+'Name').value.trim();if(v)document.getElementById(side+'Display').textContent=v.toUpperCase();}
+function loadLogo(side,input){
+ const file=input.files&&input.files[0];if(!file)return;
+ const reader=new FileReader();
+ reader.onload=e=>{const img=document.getElementById(side+'Logo');img.src=e.target.result;img.classList.remove('hidden');};
+ reader.readAsDataURL(file);
+}
+function removeLogo(side){const img=document.getElementById(side+'Logo');img.src='';img.classList.add('hidden');document.getElementById(side+'File').value='';}
+function startClock(){if(running||seconds>=2700)return;running=true;timer=setInterval(()=>{seconds++;if(seconds>=2700){seconds=2700;pauseClock();}render();},1000);}
+function pauseClock(){running=false;if(timer){clearInterval(timer);timer=null;}}
+function resetClock(){pauseClock();seconds=0;render();}
+function togglePeriod(){secondHalf=!secondHalf;render();}
+function resetMatch(){pauseClock();home=0;away=0;seconds=0;secondHalf=false;
+ document.getElementById('homeDisplay').textContent='HOME';document.getElementById('awayDisplay').textContent='AWAY';
+ document.getElementById('homeName').value='';document.getElementById('awayName').value='';
+ removeLogo('home');removeLogo('away');render();}
+function toggleControls(){document.getElementById('controls').classList.toggle('show');}
+render();
+</script>
+</body>
+</html>
